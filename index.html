@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WiFi QR Generator</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&family=Roboto:wght@400;500;700;900&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- QR code generator library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
+  <!-- Local stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="topbar">
+    <div class="lhs">
+      <span class="dot"></span>
+      <span>Wireless QR encoder · 3D print</span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>Print your <span class="amp">/</span> network.</h1>
+    <div class="meta">
+      <div><strong>EXPORT</strong> · SVG · PNG · OPENSCAD</div>
+      <div><strong>STANDARD</strong> · IEEE 802.11 · ISO 18004</div>
+      <div><strong>USE</strong> · 3D PRINT · LASER · CNC</div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="panel left">
+      <div class="panel-label"><span>01 / Network parameters</span></div>
+
+      <div class="field">
+        <label>Network name <span class="hint">SSID</span></label>
+        <input type="text" id="ssid" placeholder="HOME-NETWORK-2.4G" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Encryption</label>
+          <select id="encryption">
+            <option value="WPA">WPA / WPA2 / WPA3</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">None (open)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Error correction <span class="hint">ECC</span></label>
+          <select id="ecc">
+            <option value="H">H · 30%</option>
+            <option value="Q">Q · 25%</option>
+            <option value="M">M · 15%</option>
+            <option value="L">L · 7%</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" id="password-field">
+        <label>Password <span class="hint">case sensitive</span></label>
+        <div class="pw-wrap">
+          <input type="password" id="password" placeholder="••••••••••••" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <button type="button" class="pw-toggle" id="pw-toggle">SHOW</button>
+        </div>
+      </div>
+
+      <label class="toggle">
+        <input type="checkbox" id="hidden" />
+        <span class="check"></span>
+        <span class="lbl">Hidden network (no SSID broadcast)</span>
+      </label>
+
+      <div style="margin-top: 26px;">
+        <div class="panel-label"><span>02 / 3D print parameters</span></div>
+
+        <div class="row-3">
+          <div class="field">
+            <label>Size <span class="hint">mm</span></label>
+            <input type="number" id="p_size" value="60" min="20" max="300" step="1" />
+          </div>
+          <div class="field">
+            <label>Base <span class="hint">mm</span></label>
+            <input type="number" id="p_base" value="2" min="0.4" max="10" step="0.2" />
+          </div>
+          <div class="field">
+            <label>Module <span class="hint">mm</span></label>
+            <input type="number" id="p_module" value="1" min="0.2" max="5" step="0.2" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Label text <span class="hint">leave empty to omit</span></label>
+          <input type="text" id="p_label" value="WIFI" maxlength="24" autocomplete="off" />
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Font</label>
+            <select id="p_font">
+              <option value="inter" selected>Inter</option>
+              <option value="arial">Arial</option>
+              <option value="roboto">Roboto</option>
+              <option value="ubuntu">Ubuntu</option>
+              <option value="liberation-sans">Liberation Sans</option>
+              <option value="liberation-serif">Liberation Serif</option>
+              <option value="liberation-mono">Liberation Mono</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Text size <span class="hint">mm</span></label>
+            <input type="number" id="p_text_size" value="8" min="2" max="30" step="0.5" />
+          </div>
+        </div>
+      </div>
+
+      <details style="margin-top: 18px;">
+        <summary>03 / Encoded payload</summary>
+        <div id="payload" style="font-size:11px; color:var(--muted); word-break:break-all; padding:12px; background:var(--paper-dark); border:1px dashed var(--line); min-height:48px; margin-top:8px;">—</div>
+      </details>
+    </div>
+
+    <div class="panel right">
+      <div class="panel-label"><span>04 / Render output</span></div>
+
+      <div class="qr-stage">
+        <div class="qr-card empty" id="qr-card">
+          AWAITING<br>NETWORK<br>NAME
+        </div>
+      </div>
+
+      <div class="qr-meta" id="qr-meta" style="display:none;">
+        <strong id="meta-ssid">—</strong> · <span id="meta-enc">—</span> · <span id="meta-size">—</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="actions">
+    <div class="footnote">
+      <span class="live"></span>Live preview · scale-independent vector + parametric SCAD
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn" id="copy-btn" disabled>Copy payload</button>
+      <button class="btn" id="png-btn" disabled>PNG</button>
+      <button class="btn" id="svg-btn" disabled>SVG</button>
+      <button class="btn primary" id="scad-btn" disabled>
+        OpenSCAD <span class="btn-arrow"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>© 2026 <a href="https://wdiaz.org" target="_blank" rel="noopener">William Diaz</a> · All rights reserved</div>
+    <div><a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">Licensed under CC BY-NC 4.0</a></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<!-- Local script -->
+<script src="script.js"></script>
+
+</body>
+</html>
