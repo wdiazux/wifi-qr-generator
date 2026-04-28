@@ -4,7 +4,7 @@
 
 Generate scannable WiFi QR codes with a wifi icon overlay. Exports as SVG, PNG, or parametric OpenSCAD ready for 3D printing.
 
-**[Live demo →](https://example.com)**
+**[Live demo →]([https://example.com](https://wdiazux.github.io/wifi-qr-generator/))**
 
 ![Screenshot of the generator](assets/interface-screenshot.png)
 
