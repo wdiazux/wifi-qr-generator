@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&family=Roboto:wght@400;500;700;900&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <!-- QR code generator library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <!-- QR code generator library (SRI-pinned) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <!-- Local stylesheet -->
   <link rel="stylesheet" href="style.css">
@@ -20,7 +20,7 @@
 
 <div class="frame">
 
-  <div class="topbar">
+  <header class="topbar">
     <div class="lhs">
       <span class="dot"></span>
       <span>Wireless QR encoder · 3D print</span>
@@ -30,8 +30,9 @@
         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
       </svg>
     </a>
-  </div>
+  </header>
 
+  <main>
   <div class="hero">
     <h1>Print your <span class="amp">/</span> network.</h1>
     <div class="meta">
@@ -47,13 +48,13 @@
       <div class="panel-label"><span>01 / Network parameters</span></div>
 
       <div class="field">
-        <label>Network name <span class="hint">SSID</span></label>
+        <label for="ssid">Network name <span class="hint">SSID</span></label>
         <input type="text" id="ssid" placeholder="HOME-NETWORK-2.4G" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       </div>
 
       <div class="row">
         <div class="field">
-          <label>Encryption</label>
+          <label for="encryption">Encryption</label>
           <select id="encryption">
             <option value="WPA">WPA / WPA2 / WPA3</option>
             <option value="WEP">WEP</option>
@@ -61,7 +62,7 @@
           </select>
         </div>
         <div class="field">
-          <label>Error correction <span class="hint">ECC</span></label>
+          <label for="ecc">Error correction <span class="hint">ECC</span></label>
           <select id="ecc">
             <option value="H">H · 30%</option>
             <option value="Q">Q · 25%</option>
@@ -72,10 +73,10 @@
       </div>
 
       <div class="field" id="password-field">
-        <label>Password <span class="hint">case sensitive</span></label>
+        <label for="password">Password <span class="hint">case sensitive</span></label>
         <div class="pw-wrap">
           <input type="password" id="password" placeholder="••••••••••••" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-          <button type="button" class="pw-toggle" id="pw-toggle">SHOW</button>
+          <button type="button" class="pw-toggle" id="pw-toggle" aria-pressed="false" aria-label="Show password">SHOW</button>
         </div>
       </div>
 
@@ -85,32 +86,32 @@
         <span class="lbl">Hidden network (no SSID broadcast)</span>
       </label>
 
-      <div style="margin-top: 26px;">
+      <div class="section-gap">
         <div class="panel-label"><span>02 / 3D print parameters</span></div>
 
         <div class="row-3">
           <div class="field">
-            <label>Size <span class="hint">mm</span></label>
+            <label for="p_size">Size <span class="hint">mm</span></label>
             <input type="number" id="p_size" value="60" min="20" max="300" step="1" />
           </div>
           <div class="field">
-            <label>Base <span class="hint">mm</span></label>
+            <label for="p_base">Base <span class="hint">mm</span></label>
             <input type="number" id="p_base" value="2" min="0.4" max="10" step="0.2" />
           </div>
           <div class="field">
-            <label>Module <span class="hint">mm</span></label>
+            <label for="p_module">Module <span class="hint">mm</span></label>
             <input type="number" id="p_module" value="1" min="0.2" max="5" step="0.2" />
           </div>
         </div>
 
         <div class="field">
-          <label>Label text <span class="hint">leave empty to omit</span></label>
+          <label for="p_label">Label text <span class="hint">leave empty to omit</span></label>
           <input type="text" id="p_label" value="WIFI" maxlength="24" autocomplete="off" />
         </div>
 
         <div class="row">
           <div class="field">
-            <label>Font</label>
+            <label for="p_font">Font</label>
             <select id="p_font">
               <option value="inter" selected>Inter</option>
               <option value="arial">Arial</option>
@@ -122,15 +123,17 @@
             </select>
           </div>
           <div class="field">
-            <label>Text size <span class="hint">mm</span></label>
+            <label for="p_text_size">Text size <span class="hint">mm</span></label>
             <input type="number" id="p_text_size" value="8" min="2" max="30" step="0.5" />
           </div>
         </div>
+
+        <p class="print-warn" id="print-warn" role="alert" hidden></p>
       </div>
 
-      <details style="margin-top: 18px;">
+      <details class="payload-details">
         <summary>03 / Encoded payload</summary>
-        <div id="payload" style="font-size:11px; color:var(--muted); word-break:break-all; padding:12px; background:var(--paper-dark); border:1px dashed var(--line); min-height:48px; margin-top:8px;">—</div>
+        <div id="payload">—</div>
       </details>
     </div>
 
@@ -143,7 +146,7 @@
         </div>
       </div>
 
-      <div class="qr-meta" id="qr-meta" style="display:none;">
+      <div class="qr-meta" id="qr-meta" hidden>
         <strong id="meta-ssid">—</strong> · <span id="meta-enc">—</span> · <span id="meta-size">—</span>
       </div>
     </div>
@@ -154,7 +157,7 @@
     <div class="footnote">
       <span class="live"></span>Live preview · scale-independent vector + parametric SCAD
     </div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <div class="btn-group">
       <button class="btn" id="copy-btn" disabled>Copy payload</button>
       <button class="btn" id="png-btn" disabled>PNG</button>
       <button class="btn" id="svg-btn" disabled>SVG</button>
@@ -163,15 +166,16 @@
       </button>
     </div>
   </div>
+  </main>
 
-  <div class="footer">
+  <footer class="footer">
     <div>© 2026 <a href="https://wdiaz.org" target="_blank" rel="noopener">William Diaz</a> · All rights reserved</div>
     <div><a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">Licensed under CC BY-NC 4.0</a></div>
-  </div>
+  </footer>
 
 </div>
 
-<div class="toast" id="toast">Copied</div>
+<div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
 
 <!-- Local script -->
 <script src="script.js"></script>

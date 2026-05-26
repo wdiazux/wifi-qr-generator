@@ -16,6 +16,7 @@ const $ = (id) => document.getElementById(id);
   const labelEl = $('p_label');
   const fontEl = $('p_font');
   const textSizeEl = $('p_text_size');
+  const printWarn = $('print-warn');
 
   // ── Font lookup ──────────────────────────────────────────────
   // Each entry maps to: OpenSCAD font string, web CSS family, font weight.
@@ -60,6 +61,19 @@ const $ = (id) => document.getElementById(id);
     while ((m = re.exec(d)) !== null) tokens.push(m[1] || m[2]);
 
     const subpaths = [];
+    // Finalize a subpath, dropping any trailing vertex that (near-)duplicates the
+    // start. Closed paths often end one tessellation step shy of their start, so the
+    // closing edge becomes a near-zero-length sliver at a sharp tip (e.g. the wifi
+    // arcs). Extruded, that sliver makes 4 faces meet on one edge — a non-manifold
+    // edge the Manifold backend exports and slicers flag as "open edges". The 0.5
+    // threshold (path units) sits far below real vertex spacing (~14 here).
+    const pushSub = (p) => {
+      while (p.length > 3 &&
+             Math.hypot(p[0][0] - p[p.length - 1][0], p[0][1] - p[p.length - 1][1]) < 0.5) {
+        p.pop();
+      }
+      if (p.length) subpaths.push(p);
+    };
     let pts = [], cx = 0, cy = 0, sx = 0, sy = 0, pcx = null, pcy = null, cmd = '', i = 0;
     const num = () => parseFloat(tokens[i++]);
     const bez = (p0, p1, p2, p3) => {
@@ -76,11 +90,11 @@ const $ = (id) => document.getElementById(id);
       if (/^[a-zA-Z]$/.test(tokens[i])) { cmd = tokens[i]; i++; }
       switch (cmd) {
         case 'M':
-          if (pts.length) subpaths.push(pts);
+          pushSub(pts);
           pts = []; cx = num(); cy = num(); sx = cx; sy = cy;
           pts.push([cx, cy]); pcx = pcy = null; cmd = 'L'; break;
         case 'm':
-          if (pts.length) subpaths.push(pts);
+          pushSub(pts);
           pts = []; cx += num(); cy += num(); sx = cx; sy = cy;
           pts.push([cx, cy]); pcx = pcy = null; cmd = 'l'; break;
         case 'L': cx = num(); cy = num(); pts.push([cx, cy]); pcx = pcy = null; break;
@@ -117,12 +131,12 @@ const $ = (id) => document.getElementById(id);
           pcx = x2; pcy = y2; cx = x; cy = y; break;
         }
         case 'Z': case 'z':
-          if (pts.length) subpaths.push(pts);
+          pushSub(pts);
           pts = []; cx = sx; cy = sy; pcx = pcy = null; cmd = ''; break;
         default: i++; break;
       }
     }
-    if (pts.length) subpaths.push(pts);
+    pushSub(pts);
     return subpaths;
   }
 
@@ -132,8 +146,11 @@ const $ = (id) => document.getElementById(id);
 
   // ── UI handlers ──────────────────────────────────────────────
   pwToggle.addEventListener('click', () => {
-    if (pwEl.type === 'password') { pwEl.type = 'text'; pwToggle.textContent = 'HIDE'; }
-    else { pwEl.type = 'password'; pwToggle.textContent = 'SHOW'; }
+    const show = pwEl.type === 'password';
+    pwEl.type = show ? 'text' : 'password';
+    pwToggle.textContent = show ? 'HIDE' : 'SHOW';
+    pwToggle.setAttribute('aria-pressed', String(show));
+    pwToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   });
 
   encEl.addEventListener('change', () => {
@@ -428,10 +445,10 @@ text_size     = ${textSizeMm};   // Label text size (mm)
 text_font     = "${scadFont}";  // OpenSCAD font name (must be installed)
 
 /* [Quality] */
-$fn = 64;
 EPS = 0.01;  // tiny overlap (mm) so all features merge cleanly with the base
              // plate — prevents coincident faces that slicers flag as
              // non-manifold open edges.
+             // ($fn is set on the icon's circles only — cubes ignore it.)
 
 // ── QR module data ──────────────────────────────────────
 module_count = ${moduleCount};
@@ -459,8 +476,8 @@ module wifi_icon_2d(size) {
   // Circular border frame, centered in the size×size bounding box
   translate([size / 2, size / 2])
     difference() {
-      circle(d = size);
-      circle(d = size - 2 * badge_border_t);
+      circle(d = size, $fn = 64);
+      circle(d = size - 2 * badge_border_t, $fn = 64);
     }
   // FA wifi icon, centered inside the frame with 6% padding
   fa_w     = ${FA_WIFI_VB.w};
@@ -527,28 +544,25 @@ module base_plate() {
 }
 
 // ── Render ──────────────────────────────────────────────
-// Default: single manifold STL. All parts are unioned, with raised
-// features overlapping the base plate by EPS so the slicer sees one
-// solid (no coincident-face errors in PrusaSlicer / Cura / Bambu).
-union() {
-  base_plate();
+/* [Export] */
+// "all" renders one manifold solid (color() is preview-only and ignored by
+// STL export). For a two-color print, export each part as its own STL — no
+// file edits needed, just pass the part on the command line:
+//   openscad -D 'part="base"'   -o base.stl   this.scad
+//   openscad -D 'part="raised"' -o raised.stl this.scad
+// then load both STLs in your slicer and assign filaments.
+part = "all";  // [all, base, raised]
+
+module pick(name) { if (part == "all" || part == name) children(); }
+
+// Raised features overlap the base by EPS, so "all" is one watertight solid
+// (no coincident-face errors in PrusaSlicer / Cura / Bambu Studio).
+pick("base")   color("white") base_plate();
+pick("raised") color("black") {
   qr_modules();
   wifi_icon_3d();
   wifi_text_3d();
 }
-
-// ── Multi-color print (alternative) ─────────────────────
-// For two-filament prints (AMS, pause-and-swap, multi-tool):
-//   1. Comment out the union() block above.
-//   2. Uncomment the two color() blocks below.
-//   3. Export each color as a separate STL by toggling visibility.
-//
-// color("white") base_plate();
-// color("black") {
-//   qr_modules();
-//   wifi_icon_3d();
-//   wifi_text_3d();
-// }
 `;
   }
 
@@ -556,14 +570,45 @@ union() {
   let lastQR = null;
   let lastCanvas = null;
 
+  // Warn when a printed QR module would be too small to print/scan, or when the
+  // chosen OpenSCAD label font isn't one guaranteed to be installed on the host.
+  function updatePrintWarnings(moduleCount) {
+    const msgs = [];
+    const qrSizeMm = parseFloat(pSizeEl.value) || 60;
+    const cellMm = qrSizeMm / moduleCount;
+    if (cellMm < 0.8) {
+      msgs.push(`Module ≈ ${cellMm.toFixed(2)} mm — below ~0.8 mm may not print or scan reliably. Increase size or lower error correction.`);
+    }
+    if (!fontEl.value.startsWith('liberation')) {
+      const fontName = fontEl.options[fontEl.selectedIndex].text;
+      msgs.push(`OpenSCAD font "${fontName}" must be installed on the rendering machine — Liberation fonts are the safe default.`);
+    }
+    if (msgs.length) {
+      printWarn.innerHTML = msgs.join('<br>');
+      printWarn.hidden = false;
+    } else {
+      printWarn.hidden = true;
+    }
+  }
+
   function render() {
+    if (typeof qrcode !== 'function') {
+      qrCard.classList.add('empty');
+      qrCard.textContent = 'QR LIBRARY FAILED TO LOAD · CHECK CONNECTION';
+      qrMeta.hidden = true;
+      printWarn.hidden = true;
+      [pngBtn, svgBtn, scadBtn, copyBtn].forEach(b => b.disabled = true);
+      return;
+    }
+
     const payload = buildPayload();
     payloadEl.textContent = payload || '—';
 
     if (!payload) {
       qrCard.classList.add('empty');
       qrCard.innerHTML = 'AWAITING<br>NETWORK<br>NAME';
-      qrMeta.style.display = 'none';
+      qrMeta.hidden = true;
+      printWarn.hidden = true;
       [pngBtn, svgBtn, scadBtn, copyBtn].forEach(b => b.disabled = true);
       lastQR = null; lastCanvas = null;
       return;
@@ -609,10 +654,12 @@ union() {
       qrCard.appendChild(textLabel);
     }
 
-    qrMeta.style.display = '';
+    qrMeta.hidden = false;
     $('meta-ssid').textContent = ssidEl.value.trim();
     $('meta-enc').textContent = encEl.value === 'nopass' ? 'OPEN' : encEl.value;
     $('meta-size').textContent = qr.getModuleCount() + ' × ' + qr.getModuleCount() + ' modules';
+
+    updatePrintWarnings(qr.getModuleCount());
 
     [pngBtn, svgBtn, scadBtn, copyBtn].forEach(b => b.disabled = false);
 
